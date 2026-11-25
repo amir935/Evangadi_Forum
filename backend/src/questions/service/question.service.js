@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
-import { safeExecute } from "../../../../db/config.js";
-import { NotFoundError, BadRequestError } from "../../../utils/errors/index.js";
+import { safeExecute } from "../../../db/config.js";
+import { NotFoundError, BadRequestError, UnauthenticatedError } from "../../utils/errors/index.js";
 
 const QUESTION_SELECT = `
     SELECT q.question_id, q.question_hash, q.user_id, q.title, q.content, q.created_at,
@@ -34,6 +34,15 @@ async function createQuestionService({ userId, title, body }) {
   let embedding = null;
   let embeddingModel = null;
 
+  // A token issued by another database (or for a deleted user) carries an id
+  // that doesn't exist here; report that instead of a foreign key error.
+  const author = await safeExecute("SELECT user_id FROM users WHERE user_id = ?", [userId ?? null]);
+  if (author.length === 0) {
+    throw new UnauthenticatedError(
+      Your session is out of date (user ${userId} does not exist). Please log in again.
+    );
+  }
+
   await safeExecute(
     `INSERT INTO questions (question_hash, user_id, title, content)
    VALUES (?, ?, ?, ?)`,
@@ -41,7 +50,7 @@ async function createQuestionService({ userId, title, body }) {
   );
 
   const rows = await safeExecute(
-    `${QUESTION_SELECT} WHERE q.question_hash = ?`,
+    ${QUESTION_SELECT} WHERE q.question_hash = ?,
     [questionHash],
   );
   return toQuestion(rows[0], userId);
@@ -68,7 +77,7 @@ async function listQuestionsService({ userId, search, mine, limit }) {
 
   if (search) {
     where.push("(q.title LIKE ? OR q.content LIKE ?)");
-    params.push(`%${search}%`, `%${search}%`);
+    params.push(%${search}%, %${search}%);
   }
 
   const sql =
@@ -81,4 +90,4 @@ async function listQuestionsService({ userId, search, mine, limit }) {
   return rows.map((row) => toQuestion(row, userId));
 }
 
-export { createQuestionService, listQuestionsService, clampLimit };
+export { createQuestionService, listQuestionsService, clampLimit }
