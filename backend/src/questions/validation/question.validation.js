@@ -1,7 +1,20 @@
 import { body, query } from "express-validator";
-import { validationErrorHandler } from "../../../middleware/validation-handler.js";
+import { validationErrorHandler } from "../../middleware/validation-handler.js";
+
+// Accept content as an alias for body (the DB column is body).
+const acceptContentAsBody = (req, res, next) => {
+  if (
+    req.body &&
+    req.body.body === undefined &&
+    req.body.content !== undefined
+  ) {
+    req.body.body = req.body.content;
+  }
+  next();
+};
 
 export const createQuestionValidation = [
+  acceptContentAsBody,
   body("title")
     .isString()
     .withMessage("Title must be a string")
@@ -13,7 +26,7 @@ export const createQuestionValidation = [
     .isLength({ min: 5, max: 255 })
     .withMessage("Title must be between 5 and 255 characters"),
 
-  body("body")
+  body("content")
     .isString()
     .withMessage("Question body must be a string")
     .bail()
