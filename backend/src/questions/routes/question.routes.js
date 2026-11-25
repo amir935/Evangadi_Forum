@@ -7,7 +7,8 @@ import {
 
 const router = express.Router();
 
-router.get("/", listQuestionsController);
-router.post("/", createQuestionController);
+router.get("/", listQuestionValidation, listQuestionsController);
+
+router.post("/", createQuestionValidation, createQuestionController);
 
 export default router;
