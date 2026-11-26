@@ -4,6 +4,10 @@ import {
   createQuestionController,
   listQuestionsController,
 } from "../controller/question.controller.js";
+import {
+  createQuestionValidation,
+  listQuestionValidation,
+} from "../validation/question.validation.js";
 
 const router = express.Router();
 
